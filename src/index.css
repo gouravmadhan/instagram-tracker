@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: #101018;
+  color: #f2f0ea;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: #7c6fff;
+  color: #101018;
+}
+
+/* thin, quiet scrollbar so long username lists don't dominate the page */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2b2b3a transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #2b2b3a;
+  border-radius: 999px;
+}
