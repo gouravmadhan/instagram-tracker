@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import Panel from '../components/Panel.jsx';
 import HandleList from '../components/HandleList.jsx';
-import { commitSnapshot, fileToBase64, uploadZip } from '../api.js';
+import { addToList, commitSnapshot, fileToBase64, uploadZip } from '../api.js';
 
 function fmtDate(d) {
   if (!d) return 'never';
@@ -14,6 +14,7 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [committing, setCommitting] = useState(false);
+  const [movingUser, setMovingUser] = useState(null);
   const inputRef = useRef(null);
 
   const analysis = status?.analysis;
@@ -50,6 +51,19 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
       setError(err.message);
     } finally {
       setCommitting(false);
+    }
+  }
+
+  async function handleMove(type, username) {
+    setMovingUser(username);
+    setError('');
+    try {
+      await addToList(type, username);
+      await onRefreshStatus();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMovingUser(null);
     }
   }
 
@@ -120,7 +134,28 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
             count={analysis.notFollowingBack.length}
             accent="coral"
           >
-            <HandleList rows={analysis.notFollowingBack} emptyLabel="Everyone follows you back 🎉" />
+            <HandleList
+              rows={analysis.notFollowingBack}
+              emptyLabel="Everyone follows you back 🎉"
+              renderActions={(row) => (
+                <>
+                  <button
+                    onClick={() => handleMove('allowed', row.username)}
+                    disabled={movingUser === row.username}
+                    className="text-xs text-muted hover:text-leaf transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100 disabled:text-muted"
+                  >
+                    {movingUser === row.username ? '…' : 'allow'}
+                  </button>
+                  <button
+                    onClick={() => handleMove('disabled', row.username)}
+                    disabled={movingUser === row.username}
+                    className="text-xs text-muted hover:text-coral transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100 disabled:text-muted"
+                  >
+                    {movingUser === row.username ? '…' : 'disable'}
+                  </button>
+                </>
+              )}
+            />
           </Panel>
 
           <Panel
