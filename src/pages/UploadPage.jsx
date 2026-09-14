@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import Panel from '../components/Panel.jsx';
 import HandleList from '../components/HandleList.jsx';
-import { addToList, commitSnapshot, fileToBase64, uploadZip } from '../api.js';
+import { addToList, commitSnapshot, fileToBase64, removeFromList, uploadZip } from '../api.js';
 
 function fmtDate(d) {
   if (!d) return 'never';
@@ -59,6 +59,19 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
     setError('');
     try {
       await addToList(type, username);
+      await onRefreshStatus();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMovingUser(null);
+    }
+  }
+
+  async function handleRemoveFromList(type, username) {
+    setMovingUser(username);
+    setError('');
+    try {
+      await removeFromList(type, username);
       await onRefreshStatus();
     } catch (err) {
       setError(err.message);
@@ -173,7 +186,19 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
             count={analysis.notInAllowedListAnymore.length}
             accent="amber"
           >
-            <HandleList rows={analysis.notInAllowedListAnymore} emptyLabel="List is consistent." />
+            <HandleList
+              rows={analysis.notInAllowedListAnymore}
+              emptyLabel="List is consistent."
+              renderActions={(row) => (
+                <button
+                  onClick={() => handleRemoveFromList('allowed', row.username)}
+                  disabled={movingUser === row.username}
+                  className="text-xs text-muted hover:text-coral transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100 disabled:text-muted"
+                >
+                  {movingUser === row.username ? '…' : 'remove'}
+                </button>
+              )}
+            />
           </Panel>
 
           <Panel
