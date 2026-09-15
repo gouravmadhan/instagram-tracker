@@ -156,28 +156,47 @@ a new client.
 
 This works out of the box with no extra configuration — just `MONGODB_URI`
 and `SESSION_SECRET` (already required for Google sign-in). A few notes on
-how it's kept separate and safe:
+how it works:
 
-- **Independent from Google, by design.** Password accounts get ids like
-  `local:<uuid>`, completely separate from Google's `sub`-based ids. If the
-  same person signs up with email/password using the same email address as
-  their Google account, they'll end up with two separate Followgraph
-  accounts (and separate data) — there's no automatic linking. That's a
-  deliberate simplification; let me know if you'd rather have account
-  linking by email.
+- **Accounts are linked by email**, not kept separate. If you sign up with
+  email/password first and later click "Continue with Google" using the
+  same address, Google sign-in is added to that *same* account (same data,
+  same internal id) instead of creating a second one. The reverse works
+  too — sign in with Google first, and an email/password account created
+  later with the same address is blocked with a message pointing you back
+  to Google (see below), since it doesn't have a password to set. Each
+  account tracks which methods it supports in a `providers` field (e.g.
+  `["local"]`, `["google"]`, or `["local","google"]` once linked).
+- **Whichever id was created first stays the canonical one.** A
+  password-first account keeps its `local:<uuid>` id even after Google is
+  linked to it; a Google-first account keeps its Google `sub` as its id.
+  Either way, all your snapshots/lists stay under that one id.
+- **Google always refreshes your name and profile picture** on login (but
+  never blanks out a photo you already had, on the rare login where Google
+  doesn't return one).
 - **Passwords are hashed with bcrypt** (via `bcryptjs`, a pure-JS
   implementation with no native build step, which matters for Vercel's
   serverless functions) — never stored or logged in plaintext.
 - **Minimum password length is 8 characters**, enforced on both the client
   and server.
-- **Login errors are intentionally generic** ("Invalid email or password")
-  whether the email doesn't exist or the password is wrong, so failed
-  attempts can't be used to discover which emails have accounts.
+- **Sign-in error messages:** a wrong password or missing account both give
+  a generic "Invalid email or password." If the email belongs to a
+  Google-only account (no password set), you'll instead see "This account
+  uses Google sign-in" — that's a deliberate small trade-off: it reveals
+  that *an* account exists for that email, in exchange for pointing you to
+  the right way to sign in instead of leaving you stuck retrying a password
+  that was never set.
 - **Not included:** email verification, "forgot password" / reset flow, and
   rate limiting on login attempts. For a small personal tool these are
   usually fine to skip, but if you're expecting other people to use this
   regularly, rate limiting on `/api/auth/login-password` would be the first
   thing worth adding.
+- **If you already created duplicate accounts before this linking logic
+  existed** (a Google account and a password account under the same
+  email), they won't automatically merge — merging is only applied going
+  forward, on new logins. To combine them manually, you'd move the
+  `snapshots`/`lists` documents from one account's `<id>::...` keys to the
+  other's in MongoDB, then delete the now-unused `users` document.
 
 ## Notes & limits
 
@@ -193,11 +212,13 @@ how it's kept separate and safe:
   above), only accounts you've explicitly added as test users can actually
   complete sign-in — everyone else gets blocked by Google before reaching
   your app. That's the recommended setup for a personal tool.
-- **Per-user identity:** each account is keyed internally by Google's
-  `sub` claim — a stable, unique identifier for that Google account that
-  never changes, unlike email (which can technically be changed). Email is
-  stored alongside it only for display in the sidebar. This is why you
-  won't see raw email addresses embedded in every database document.
+- **Per-user identity:** each account is keyed internally by whichever id
+  was created first — a Google `sub` if you started with Google, or a
+  generated `local:<uuid>` if you started with email/password. Signing in
+  the other way later with the same email links to that same account
+  rather than creating a new one (see "Email + password accounts" above).
+  Email is stored for display and for that linking lookup, not as the
+  primary key itself.
 - **Breaking schema change from earlier versions:** if you previously ran
   this app without login, its data lived in unscoped documents like
   `followers_current`. This version scopes everything under

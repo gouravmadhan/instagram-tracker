@@ -35,27 +35,32 @@ export default async function handler(req, res) {
     const db = await getDb();
     const users = db.collection('users');
 
-    // Scoped to provider: 'local' so this never collides with, or looks at,
-    // Google-signed-in accounts.
-    const existing = await users.findOne({ provider: 'local', email });
+    const existing = await users.findOne({ email });
     if (existing) {
-      res.status(409).json({ error: 'An account with this email already exists — try signing in instead.' });
+      if (existing.passwordHash) {
+        res.status(409).json({ error: 'An account with this email already exists — try signing in instead.' });
+      } else {
+        res
+          .status(409)
+          .json({ error: 'This email is already linked to a Google account — use "Continue with Google" to sign in.' });
+      }
       return;
     }
 
     // Prefixed so these ids can never collide with a Google `sub`, keeping
-    // the two auth methods' data completely independent.
+    // the two auth methods' internal ids distinct even though they now
+    // share one account per email.
     const id = `local:${crypto.randomUUID()}`;
     const passwordHash = await hashPassword(password);
     const now = new Date();
 
     await users.insertOne({
       _id: id,
-      provider: 'local',
       email,
       name,
       picture: '',
       passwordHash,
+      providers: ['local'],
       createdAt: now,
       lastLoginAt: now,
     });

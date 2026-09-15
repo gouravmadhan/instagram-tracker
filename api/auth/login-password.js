@@ -26,20 +26,23 @@ export default async function handler(req, res) {
 
     const db = await getDb();
     const users = db.collection('users');
-    const account = await users.findOne({ provider: 'local', email });
+    const account = await users.findOne({ email });
 
-    // Same generic message whether the email doesn't exist or the password
-    // is wrong, so failed attempts can't be used to probe which emails
-    // have accounts.
-    const genericError = 'Invalid email or password';
     if (!account) {
-      res.status(401).json({ error: genericError });
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+    if (!account.passwordHash) {
+      res.status(401).json({ error: 'This account uses Google sign-in — use "Continue with Google" instead.' });
       return;
     }
 
+    // Same generic message for a wrong password as for a missing account,
+    // so failed attempts can't be used to probe which emails have
+    // accounts.
     const valid = await verifyPassword(password, account.passwordHash);
     if (!valid) {
-      res.status(401).json({ error: genericError });
+      res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
 

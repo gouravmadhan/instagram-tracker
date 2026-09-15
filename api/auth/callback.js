@@ -60,24 +60,61 @@ export default async function handler(req, res) {
     }
 
     // Google's `sub` is the stable, unique account identifier — unlike
-    // email, it never changes and isn't reused, so it's what we key data
-    // on internally. Email is kept only for display.
-    const user = {
-      id: profile.sub,
-      email: profile.email,
-      name: profile.name || profile.email,
-      picture: profile.picture || '',
-    };
+    // email, it never changes and isn't reused. But if this person already
+    // has an account under this email (e.g. they signed up with a
+    // password first), we want to sign them into *that* account rather
+    // than create a second, separate one — so we look up by googleId
+    // first, then fall back to matching on email.
+    const googleId = profile.sub;
+    const email = (profile.email || '').toLowerCase();
+    const name = profile.name || email;
+    const picture = profile.picture || '';
 
     const db = await getDb();
-    await db.collection('users').updateOne(
-      { _id: user.id },
-      {
-        $set: { email: user.email, name: user.name, picture: user.picture, lastLoginAt: new Date() },
-        $setOnInsert: { createdAt: new Date() },
-      },
-      { upsert: true }
-    );
+    const users = db.collection('users');
+    const now = new Date();
+
+    let account = await users.findOne({ googleId });
+    if (!account && email) {
+      account = await users.findOne({ email });
+    }
+
+    if (account) {
+      const providers = Array.from(
+        new Set([...(account.providers || (account.provider ? [account.provider] : [])), 'google'])
+      );
+      await users.updateOne(
+        { _id: account._id },
+        {
+          $set: {
+            email,
+            name,
+            // Prefer the fresh Google photo, but don't wipe out an
+            // existing one on the rare login where Google omits it.
+            picture: picture || account.picture || '',
+            googleId,
+            providers,
+            lastLoginAt: now,
+          },
+        }
+      );
+      account = await users.findOne({ _id: account._id });
+    } else {
+      const doc = {
+        _id: googleId,
+        email,
+        name,
+        picture,
+        googleId,
+        providers: ['google'],
+        createdAt: now,
+        lastLoginAt: now,
+      };
+      await users.insertOne(doc);
+      account = doc;
+    }
+
+    const user = { id: account._id, email: account.email, name: account.name, picture: account.picture || '' };
 
     const token = createSessionToken(user);
 
