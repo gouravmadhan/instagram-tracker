@@ -140,7 +140,7 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
       )}
 
       {analysis && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           <Panel
             title="Not following back"
             hint="You follow them, they don't follow you, and they're not on your allowed list."
@@ -216,7 +216,19 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
             count={analysis.pendingCanRemove.length}
             accent="coral"
           >
-            <HandleList rows={analysis.pendingCanRemove} emptyLabel="None." />
+            <HandleList
+              rows={analysis.pendingCanRemove}
+              emptyLabel="None."
+              renderActions={(row) => (
+                <button
+                  onClick={() => handleMove('allowed_pending', row.username)}
+                  disabled={movingUser === row.username}
+                  className="text-xs text-muted hover:text-leaf transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100 disabled:text-muted"
+                >
+                  {movingUser === row.username ? '…' : 'allow'}
+                </button>
+              )}
+            />
           </Panel>
 
           <Panel

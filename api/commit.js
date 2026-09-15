@@ -1,4 +1,6 @@
 import { getDb } from '../lib/db.js';
+import { requireUser } from '../lib/requireUser.js';
+import { scopedId } from '../lib/scopedId.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -6,13 +8,16 @@ export default async function handler(req, res) {
     return;
   }
 
+  const user = requireUser(req, res);
+  if (!user) return;
+
   try {
     const db = await getDb();
     const snapshots = db.collection('snapshots');
 
     const [currentFollowers, currentFollowing] = await Promise.all([
-      snapshots.findOne({ _id: 'followers_current' }),
-      snapshots.findOne({ _id: 'following_current' }),
+      snapshots.findOne({ _id: scopedId(user.id, 'followers_current') }),
+      snapshots.findOne({ _id: scopedId(user.id, 'following_current') }),
     ]);
 
     if (!currentFollowers || !currentFollowing) {
@@ -23,9 +28,10 @@ export default async function handler(req, res) {
     const now = new Date();
     await Promise.all([
       snapshots.updateOne(
-        { _id: 'followers_previous' },
+        { _id: scopedId(user.id, 'followers_previous') },
         {
           $set: {
+            userId: user.id,
             map: currentFollowers.map,
             usernames: currentFollowers.usernames,
             updatedAt: now,
@@ -34,9 +40,10 @@ export default async function handler(req, res) {
         { upsert: true }
       ),
       snapshots.updateOne(
-        { _id: 'following_previous' },
+        { _id: scopedId(user.id, 'following_previous') },
         {
           $set: {
+            userId: user.id,
             map: currentFollowing.map,
             usernames: currentFollowing.usernames,
             updatedAt: now,
