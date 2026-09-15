@@ -11,6 +11,30 @@ export function fetchStatus() {
   return request('/api/status');
 }
 
+export function fetchMe() {
+  return request('/api/auth/me');
+}
+
+export function logout() {
+  return request('/api/auth/logout', { method: 'POST' });
+}
+
+export function signup(email, password, name) {
+  return request('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, name }),
+  });
+}
+
+export function loginWithPassword(email, password) {
+  return request('/api/auth/login-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+}
+
 export function uploadZip(zipBase64) {
   return request('/api/upload', {
     method: 'POST',

@@ -4,16 +4,18 @@ export default function HandleList({ rows, emptyLabel = 'Nothing here', renderAc
   }
   return (
     <ul className="divide-y divide-hair/60">
-      {rows.map((row) => (
+      {rows.sort((a, b) => a.username.localeCompare(b.username)).map((row) => (
         <li key={row.username} className="flex items-center justify-between gap-3 py-2 group">
-          <span className="font-mono text-sm text-cream truncate">@{row.username}</span>
+          <span className="font-mono text-sm text-cream truncate hover:text-violet">
+            <a href={row.url} target="_blank">@{row.username}</a>
+          </span>
           <span className="flex items-center gap-3 shrink-0">
             {renderActions?.(row)}
             <a
               href={row.url}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-muted group-hover:text-violet transition-colors"
+              className="text-xs text-muted hover:text-violet transition-colors"
             >
               view ↗
             </a>

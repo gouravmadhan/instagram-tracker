@@ -94,21 +94,23 @@ export default function ListEditor({ title, description, usernames, onAdd, onRem
 
       <ul className="divide-y divide-hair/60 max-h-64 overflow-y-auto pr-1">
         {visible.length === 0 && <li className="text-sm text-muted py-3">No usernames yet.</li>}
-        {visible.map((u) => (
+        {visible.sort().map((u) => (
           <li key={u} className="flex items-center justify-between gap-3 py-2 group">
-            <span className="font-mono text-sm text-cream truncate">@{u}</span>
+            <span className="font-mono text-sm text-cream truncate hover:text-violet">
+              <a href={`https://www.instagram.com/${u}`} target="_blank">@{u}</a>
+            </span>
             <span className="flex items-center gap-3 shrink-0">
               <a
                 href={`https://www.instagram.com/${u}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs text-muted group-hover:text-violet transition-colors"
+                className="text-xs text-muted hover:text-violet transition-colors"
               >
                 view ↗
               </a>
               <button
                 onClick={() => onRemove(u)}
-                className="text-xs text-muted hover:text-coral transition-colors opacity-0 group-hover:opacity-100"
+                className="text-xs text-muted hover:text-coral transition-colors"
               >
                 remove
               </button>
