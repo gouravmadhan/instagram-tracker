@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import UploadPage from './pages/UploadPage.jsx';
 import ListsPage from './pages/ListsPage.jsx';
 import LoginGate from './components/LoginGate.jsx';
 import { fetchMe, fetchStatus, logout } from './api.js';
 
 const TABS = [
-  { id: 'upload', label: 'Upload & analyze' },
-  { id: 'lists', label: 'Manage lists' },
+  { path: '/', label: 'Upload & analyze' },
+  { path: '/manage', label: 'Manage lists' },
 ];
 
 export default function App() {
@@ -35,7 +36,7 @@ export default function App() {
 }
 
 function Dashboard({ user, onSignedOut }) {
-  const [tab, setTab] = useState('upload');
+  const location = useLocation();
   const [status, setStatus] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [statusError, setStatusError] = useState('');
@@ -77,15 +78,15 @@ function Dashboard({ user, onSignedOut }) {
         </div>
         <nav className="mt-10 space-y-1">
           {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                tab === t.id ? 'bg-violet/15 text-violet' : 'text-muted hover:text-cream'
+            <Link
+              key={t.path}
+              to={t.path}
+              className={`block w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                location.pathname === t.path ? 'bg-violet/15 text-violet' : 'text-muted hover:text-cream'
               }`}
             >
               {t.label}
-            </button>
+            </Link>
           ))}
         </nav>
         <p className="mt-8 text-xs text-muted leading-relaxed">
@@ -117,15 +118,15 @@ function Dashboard({ user, onSignedOut }) {
           </div>
           <div className="flex items-center gap-2">
             {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
+              <Link
+                key={t.path}
+                to={t.path}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium ${
-                  tab === t.id ? 'bg-violet/15 text-violet' : 'text-muted'
+                  location.pathname === t.path ? 'bg-violet/15 text-violet' : 'text-muted'
                 }`}
               >
                 {t.label}
-              </button>
+              </Link>
             ))}
             <button onClick={handleLogout} className="text-xs text-muted hover:text-coral">
               Sign out
@@ -141,14 +142,22 @@ function Dashboard({ user, onSignedOut }) {
           )}
           {loadingStatus ? (
             <p className="text-sm text-muted">Loading…</p>
-          ) : tab === 'upload' ? (
-            <UploadPage
-              status={status}
-              onUploaded={(result) => setStatus(result)}
-              onRefreshStatus={refreshStatus}
-            />
           ) : (
-            <ListsPage onRefreshStatus={refreshStatus} />
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <UploadPage
+                    status={status}
+                    onUploaded={(result) => setStatus(result)}
+                    onRefreshStatus={refreshStatus}
+                  />
+                }
+              />
+              <Route path="/home" element={<Navigate to="/" replace />} />
+              <Route path="/manage" element={<ListsPage onRefreshStatus={refreshStatus} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           )}
         </main>
       </div>

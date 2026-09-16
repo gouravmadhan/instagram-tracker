@@ -74,11 +74,25 @@ src/            React app (Vite)
    `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `SESSION_SECRET` (see
    "Configuring Google OAuth" below — you'll want a second OAuth client, or
    an extra redirect URI, for `http://localhost:3000`).
-3. Install the Vercel CLI once (`npm i -g vercel`) and run `vercel dev` —
-   this serves both the Vite frontend and the `/api` functions together on
-   one port, which is how the app actually runs in production. (`npm run
-   dev` alone only serves the frontend; the `/api` proxy in `vite.config.js`
-   expects a separate API server on :3000, e.g. from `vercel dev`.)
+3. Install the Vercel CLI once (`npm i -g vercel`), run `vercel link` once
+   to connect this folder to a Vercel project (needed so `vercel dev` picks
+   up the Vite framework correctly), then run `vercel dev` — this serves
+   both the Vite frontend and the `/api` functions together on one port,
+   which is how the app actually runs in production. (`npm run dev` alone
+   only serves the frontend; the `/api` proxy in `vite.config.js` expects a
+   separate API server on :3000, e.g. from `vercel dev`.)
+
+### Client-side routes and `vercel.json`
+
+The app has a couple of real routes (`/`, `/manage`) via `react-router-dom`,
+so `vercel.json` has rewrites sending those specific paths to `index.html`
+— otherwise a hard refresh on `/manage` would 404 on Vercel (there's no
+literal `manage.html` file to serve). This is scoped to the exact known
+routes rather than a catch-all like `/(.*)`  — a catch-all also matches
+Vite's own dev-mode requests (`/src/main.jsx`, `/@vite/client`, etc.) and
+breaks `vercel dev` entirely (404s on those paths, blank page). **If you
+add another page/route to the app, add its path to the `rewrites` list in
+`vercel.json` too.**
 
 ## Deploying to Vercel
 
