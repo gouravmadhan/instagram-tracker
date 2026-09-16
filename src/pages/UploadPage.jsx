@@ -172,6 +172,15 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
           </Panel>
 
           <Panel
+            title="Follow you, but you don't follow back"
+            hint="In your followers list but not in your following list."
+            count={analysis.followersNotFollowedBack.length}
+            accent="leaf"
+          >
+            <HandleList rows={analysis.followersNotFollowedBack} emptyLabel="You follow everyone back." />
+          </Panel>
+
+          <Panel
             title="Started following back"
             hint="On your allowed list, and now following you — safe to remove from allowed."
             count={analysis.startedFollowingCanRemoveFromAllowed.length}

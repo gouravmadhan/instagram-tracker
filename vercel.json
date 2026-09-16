@@ -1,0 +1,7 @@
+{
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/manage", "destination": "/index.html" },
+    { "source": "/home", "destination": "/index.html" }
+  ]
+}
