@@ -4,7 +4,7 @@ import { parseUsernameList } from '../lib/parseUsernames.js';
 import { requireUser } from '../lib/requireUser.js';
 import { scopedId } from '../lib/scopedId.js';
 
-const VALID_TYPES = ['allowed', 'disabled', 'allowed_pending'];
+const VALID_TYPES = ['allowed', 'disabled', 'allowed_pending', 'watchlist'];
 
 export default async function handler(req, res) {
   const user = requireUser(req, res);
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const ids = VALID_TYPES.map((t) => scopedId(user.id, t));
       const docs = await lists.find({ _id: { $in: ids } }).toArray();
-      const result = { allowed: [], disabled: [], allowed_pending: [] };
+      const result = { allowed: [], disabled: [], allowed_pending: [], watchlist: [] };
       for (const doc of docs) {
         if (doc.type) result[doc.type] = doc.usernames || [];
       }
