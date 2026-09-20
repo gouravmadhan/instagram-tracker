@@ -1,7 +1,16 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Panel from '../components/Panel.jsx';
 import HandleList from '../components/HandleList.jsx';
-import { addToList, commitSnapshot, fileToBase64, removeFromList, uploadZip } from '../api.js';
+import ListEditor from '../components/ListEditor.jsx';
+import {
+  addToList,
+  clearList,
+  commitSnapshot,
+  fetchLists,
+  fileToBase64,
+  removeFromList,
+  uploadZip,
+} from '../api.js';
 
 function fmtDate(d) {
   if (!d) return 'never';
@@ -15,9 +24,34 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
   const [error, setError] = useState('');
   const [committing, setCommitting] = useState(false);
   const [movingUser, setMovingUser] = useState(null);
+  const [watchlist, setWatchlist] = useState([]);
+  const [watchlistLoading, setWatchlistLoading] = useState(true);
   const inputRef = useRef(null);
 
   const analysis = status?.analysis;
+
+  useEffect(() => {
+    fetchLists()
+      .then((d) => setWatchlist(d.watchlist || []))
+      .catch(() => {})
+      .finally(() => setWatchlistLoading(false));
+  }, []);
+
+  const watchlistHandlers = {
+    onAdd: async (usernames) => {
+      const result = await addToList('watchlist', usernames);
+      setWatchlist(result.usernames);
+      return result;
+    },
+    onRemove: async (username) => {
+      const result = await removeFromList('watchlist', username);
+      setWatchlist(result.usernames);
+    },
+    onClearAll: async () => {
+      const result = await clearList('watchlist');
+      setWatchlist(result.usernames);
+    },
+  };
 
   const handleFile = useCallback(
     async (file) => {
@@ -131,6 +165,15 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
           {committing ? 'Saving baseline…' : 'Move current → previous'}
         </button>
       </div>
+
+      {!watchlistLoading && (
+        <ListEditor
+          title="Watchlist"
+          description="Usernames you just want to keep an eye on and view anytime — doesn't affect any of the analysis. Add or remove here whenever, no upload needed."
+          usernames={watchlist}
+          {...watchlistHandlers}
+        />
+      )}
 
       {!analysis && (
         <p className="text-sm text-muted">

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import ListEditor from '../components/ListEditor.jsx';
 import { addToList, clearList, fetchLists, removeFromList } from '../api.js';
 
-const EMPTY = { allowed: [], disabled: [], allowed_pending: [] };
+const EMPTY = { allowed: [], disabled: [], allowed_pending: [], watchlist: [] };
 
 export default function ListsPage({ onRefreshStatus }) {
   const [lists, setLists] = useState(EMPTY);
@@ -49,7 +49,7 @@ export default function ListsPage({ onRefreshStatus }) {
       <p className="text-xs text-muted -mt-2">
         Changes here update the analysis on the Upload &amp; analyze tab immediately — no re-upload needed.
       </p>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
         <ListEditor
           title="Allowed"
           description="Accounts you're fine not being followed back by — excluded from 'not following back'."
@@ -67,6 +67,12 @@ export default function ListsPage({ onRefreshStatus }) {
           description="Outgoing follow requests you're fine leaving pending indefinitely."
           usernames={lists.allowed_pending}
           {...makeHandlers('allowed_pending')}
+        />
+        <ListEditor
+          title="Watchlist"
+          description="Usernames you just want to keep an eye on and view anytime — doesn't affect any of the analysis."
+          usernames={lists.watchlist}
+          {...makeHandlers('watchlist')}
         />
       </div>
     </div>
