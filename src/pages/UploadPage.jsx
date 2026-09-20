@@ -190,6 +190,27 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
           </Panel>
 
           <Panel
+            title="Disabled accounts that are back"
+            hint="On your disabled list, but now showing up in your followers again — likely reactivated."
+            count={analysis.disabledAccountsBack.length}
+            accent="leaf"
+          >
+            <HandleList
+              rows={analysis.disabledAccountsBack}
+              emptyLabel="None back yet."
+              renderActions={(row) => (
+                <button
+                  onClick={() => handleRemoveFromList('disabled', row.username)}
+                  disabled={movingUser === row.username}
+                  className="text-xs text-muted hover:text-coral transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100 disabled:text-muted"
+                >
+                  {movingUser === row.username ? '…' : 'remove'}
+                </button>
+              )}
+            />
+          </Panel>
+
+          <Panel
             title="Allowed, but not followed anymore"
             hint="On your allowed list, but you don't currently follow them."
             count={analysis.notInAllowedListAnymore.length}
