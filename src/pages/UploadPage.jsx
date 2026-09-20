@@ -166,15 +166,6 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
         </button>
       </div>
 
-      {!watchlistLoading && (
-        <ListEditor
-          title="Watchlist"
-          description="Usernames you just want to keep an eye on and view anytime — doesn't affect any of the analysis. Add or remove here whenever, no upload needed."
-          usernames={watchlist}
-          {...watchlistHandlers}
-        />
-      )}
-
       {!analysis && (
         <p className="text-sm text-muted">
           Upload a zip to see your analysis. After you review it, use "Move current → previous" so the
@@ -182,8 +173,8 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
         </p>
       )}
 
-      {analysis && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+        {analysis && (
           <Panel
             title="Not following back"
             hint="You follow them, they don't follow you, and they're not on your allowed list."
@@ -213,7 +204,19 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
               )}
             />
           </Panel>
+        )}
 
+        {!watchlistLoading && (
+          <ListEditor
+            title="Watchlist"
+            description="Usernames you just want to keep an eye on and view anytime — doesn't affect any of the analysis."
+            usernames={watchlist}
+            {...watchlistHandlers}
+          />
+        )}
+
+        {analysis && (
+          <>
           <Panel
             title="Follow you, but you don't follow back"
             hint="In your followers list but not in your following list."
@@ -357,8 +360,9 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
           >
             <HandleList rows={analysis.commonAdded} emptyLabel="None." />
           </Panel>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
