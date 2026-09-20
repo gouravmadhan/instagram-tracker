@@ -1,7 +1,16 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Panel from '../components/Panel.jsx';
 import HandleList from '../components/HandleList.jsx';
-import { addToList, commitSnapshot, fileToBase64, removeFromList, uploadZip } from '../api.js';
+import ListEditor from '../components/ListEditor.jsx';
+import {
+  addToList,
+  clearList,
+  commitSnapshot,
+  fetchLists,
+  fileToBase64,
+  removeFromList,
+  uploadZip,
+} from '../api.js';
 
 function fmtDate(d) {
   if (!d) return 'never';
@@ -15,9 +24,34 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
   const [error, setError] = useState('');
   const [committing, setCommitting] = useState(false);
   const [movingUser, setMovingUser] = useState(null);
+  const [watchlist, setWatchlist] = useState([]);
+  const [watchlistLoading, setWatchlistLoading] = useState(true);
   const inputRef = useRef(null);
 
   const analysis = status?.analysis;
+
+  useEffect(() => {
+    fetchLists()
+      .then((d) => setWatchlist(d.watchlist || []))
+      .catch(() => {})
+      .finally(() => setWatchlistLoading(false));
+  }, []);
+
+  const watchlistHandlers = {
+    onAdd: async (usernames) => {
+      const result = await addToList('watchlist', usernames);
+      setWatchlist(result.usernames);
+      return result;
+    },
+    onRemove: async (username) => {
+      const result = await removeFromList('watchlist', username);
+      setWatchlist(result.usernames);
+    },
+    onClearAll: async () => {
+      const result = await clearList('watchlist');
+      setWatchlist(result.usernames);
+    },
+  };
 
   const handleFile = useCallback(
     async (file) => {
@@ -139,8 +173,8 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
         </p>
       )}
 
-      {analysis && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+        {analysis && (
           <Panel
             title="Not following back"
             hint="You follow them, they don't follow you, and they're not on your allowed list."
@@ -170,7 +204,19 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
               )}
             />
           </Panel>
+        )}
 
+        {!watchlistLoading && (
+          <ListEditor
+            title="Watchlist"
+            description="Usernames you just want to keep an eye on and view anytime — doesn't affect any of the analysis."
+            usernames={watchlist}
+            {...watchlistHandlers}
+          />
+        )}
+
+        {analysis && (
+          <>
           <Panel
             title="Follow you, but you don't follow back"
             hint="In your followers list but not in your following list."
@@ -187,6 +233,27 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
             accent="leaf"
           >
             <HandleList rows={analysis.startedFollowingCanRemoveFromAllowed} emptyLabel="None yet." />
+          </Panel>
+
+          <Panel
+            title="Disabled accounts that are back"
+            hint="On your disabled list, but now showing up in your followers again — likely reactivated."
+            count={analysis.disabledAccountsBack.length}
+            accent="leaf"
+          >
+            <HandleList
+              rows={analysis.disabledAccountsBack}
+              emptyLabel="None back yet."
+              renderActions={(row) => (
+                <button
+                  onClick={() => handleRemoveFromList('disabled', row.username)}
+                  disabled={movingUser === row.username}
+                  className="text-xs text-muted hover:text-coral transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100 disabled:text-muted"
+                >
+                  {movingUser === row.username ? '…' : 'remove'}
+                </button>
+              )}
+            />
           </Panel>
 
           <Panel
@@ -293,8 +360,9 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
           >
             <HandleList rows={analysis.commonAdded} emptyLabel="None." />
           </Panel>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
