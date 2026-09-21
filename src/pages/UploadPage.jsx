@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Panel from '../components/Panel.jsx';
 import HandleList from '../components/HandleList.jsx';
 import ListEditor from '../components/ListEditor.jsx';
@@ -18,6 +19,13 @@ function fmtDate(d) {
   return date.toLocaleString();
 }
 
+const SECTIONS = [
+  { id: 'status', label: 'Follow status' },
+  { id: 'pending', label: 'Pending requests' },
+  { id: 'changes', label: 'Changes since baseline' },
+  { id: 'watchlist', label: 'Watchlist' },
+];
+
 export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -27,6 +35,12 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
   const [watchlist, setWatchlist] = useState([]);
   const [watchlistLoading, setWatchlistLoading] = useState(true);
   const inputRef = useRef(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const section = searchParams.get('section') || 'status';
+  function setSection(id) {
+    setSearchParams(id === 'status' ? {} : { section: id }, { replace: true });
+  }
 
   const analysis = status?.analysis;
 
@@ -51,6 +65,26 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
       const result = await clearList('watchlist');
       setWatchlist(result.usernames);
     },
+  };
+
+  const sectionCounts = {
+    status: analysis
+      ? analysis.notFollowingBack.length +
+        analysis.followersNotFollowedBack.length +
+        analysis.startedFollowingCanRemoveFromAllowed.length +
+        analysis.disabledAccountsBack.length +
+        analysis.notInAllowedListAnymore.length
+      : null,
+    pending: analysis ? analysis.pendingAllowed.length + analysis.pendingCanRemove.length : null,
+    changes: analysis
+      ? analysis.removedFromFollowingOnly.length +
+        analysis.removedFromFollowersOnly.length +
+        analysis.addedToFollowingOnly.length +
+        analysis.addedToFollowersOnly.length +
+        analysis.commonRemoved.length +
+        analysis.commonAdded.length
+      : null,
+    watchlist: watchlist.length,
   };
 
   const handleFile = useCallback(
@@ -166,15 +200,50 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
         </button>
       </div>
 
-      {!analysis && (
+      <div className="flex flex-wrap gap-1.5 p-1.5 rounded-lg bg-panel border border-hair w-fit">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setSection(s.id)}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              section === s.id ? 'bg-violet/15 text-violet' : 'text-muted hover:text-cream'
+            }`}
+          >
+            {s.label}
+            {sectionCounts[s.id] !== null && (
+              <span
+                className={`font-mono text-xs ${section === s.id ? 'text-violet' : 'text-muted'}`}
+              >
+                {sectionCounts[s.id]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {section === 'watchlist' &&
+        (watchlistLoading ? (
+          <p className="text-sm text-muted">Loading…</p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+            <ListEditor
+              title="Watchlist"
+              description="Usernames you just want to keep an eye on and view anytime — doesn't affect any of the analysis."
+              usernames={watchlist}
+              {...watchlistHandlers}
+            />
+          </div>
+        ))}
+
+      {section !== 'watchlist' && !analysis && (
         <p className="text-sm text-muted">
           Upload a zip to see your analysis. After you review it, use "Move current → previous" so the
           next upload compares against today's data.
         </p>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-        {analysis && (
+      {section === 'status' && analysis && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           <Panel
             title="Not following back"
             hint="You follow them, they don't follow you, and they're not on your allowed list."
@@ -204,19 +273,7 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
               )}
             />
           </Panel>
-        )}
 
-        {!watchlistLoading && (
-          <ListEditor
-            title="Watchlist"
-            description="Usernames you just want to keep an eye on and view anytime — doesn't affect any of the analysis."
-            usernames={watchlist}
-            {...watchlistHandlers}
-          />
-        )}
-
-        {analysis && (
-          <>
           <Panel
             title="Follow you, but you don't follow back"
             hint="In your followers list but not in your following list."
@@ -276,7 +333,11 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
               )}
             />
           </Panel>
+        </div>
+      )}
 
+      {section === 'pending' && analysis && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           <Panel
             title="Pending requests — allowed"
             hint="Outgoing follow requests you've explicitly allowed to stay pending."
@@ -306,7 +367,11 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
               )}
             />
           </Panel>
+        </div>
+      )}
 
+      {section === 'changes' && analysis && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           <Panel
             title="Removed since last baseline"
             hint="No longer in your following list (and not also missing from followers)."
@@ -360,9 +425,8 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
           >
             <HandleList rows={analysis.commonAdded} emptyLabel="None." />
           </Panel>
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
