@@ -32,6 +32,7 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
   const [error, setError] = useState('');
   const [committing, setCommitting] = useState(false);
   const [movingUser, setMovingUser] = useState(null);
+  const [toast, setToast] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
   const [watchlistLoading, setWatchlistLoading] = useState(true);
   const inputRef = useRef(null);
@@ -44,6 +45,13 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
 
   const analysis = status?.analysis;
 
+  // Auto-dismiss the success toast after 3 seconds. Keyed on the toast
+  // object (with a unique id) so a second upload within 3s restarts the timer.
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
   useEffect(() => {
     fetchLists()
       .then((d) => setWatchlist(d.watchlist || []))
@@ -100,6 +108,10 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
         const base64 = await fileToBase64(file);
         const result = await uploadZip(base64);
         onUploaded(result);
+        setToast({
+          id: Date.now(),
+          message: `Analysis complete — ${result.currentFollowersCount} followers, ${result.currentFollowingCount} following`,
+        });
       } catch (err) {
         setError(err.message);
       } finally {
@@ -150,6 +162,16 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
 
   return (
     <div className="space-y-6">
+      {toast && (
+        <div
+          role="status"
+          className="toast-in fixed top-5 right-5 z-50 flex items-center gap-2.5 rounded-lg border border-leaf/30 bg-panel2 px-4 py-3 shadow-lg"
+        >
+          <span className="w-2 h-2 rounded-full bg-leaf shrink-0" />
+          <p className="text-sm text-cream">{toast.message}</p>
+        </div>
+      )}
+
       <div
         onDragOver={(e) => {
           e.preventDefault();
