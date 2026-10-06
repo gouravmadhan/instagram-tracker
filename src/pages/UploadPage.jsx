@@ -147,20 +147,6 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
     }
   }
 
-  function handleOpenAll(rows) {
-    // Spaced 1s apart as requested. Note this makes the popup blocker more
-    // likely to step in, not less: browsers generally only treat
-    // window.open() as "allowed" when it runs synchronously inside a click
-    // handler. Once a call happens inside a setTimeout (as all but the
-    // first one here do), most browsers treat it as not user-triggered and
-    // may silently block it — Chrome will show a blocked-popup icon in the
-    // address bar for the ones it stops, which the user can then click to
-    // allow. There's no way to prevent that from code.
-    rows.forEach((row, i) => {
-      setTimeout(() => window.open(row.url, '_blank', 'noopener,noreferrer'), i * 1000);
-    });
-  }
-
   async function handleRemoveFromList(type, username) {
     setMovingUser(username);
     setError('');
@@ -388,16 +374,6 @@ export default function UploadPage({ status, onUploaded, onRefreshStatus }) {
             hint="Outgoing requests not on your allowed-pending list."
             count={analysis.pendingCanRemove.length}
             accent="coral"
-            headerAction={
-              analysis.pendingCanRemove.length > 0 && (
-                <button
-                  onClick={() => handleOpenAll(analysis.pendingCanRemove)}
-                  className="text-xs text-muted hover:text-violet transition-colors"
-                >
-                  open all ↗
-                </button>
-              )
-            }
           >
             <HandleList
               rows={analysis.pendingCanRemove}
